@@ -4,6 +4,7 @@ import re
 import csv
 import models
 
+
 CONFIG = {'STATIC_FILE_DIR': 'static',
           'TEMPLATE_DIR': 'templates'}
 
@@ -14,9 +15,17 @@ def load_template(template):
         return f.read()
 
 
+def render_template(template, **kwargs):
+    '''load a template into a string object and substitute placeholders'''
+    with open(os.path.join(CONFIG['TEMPLATE_DIR'], template)) as f:
+        return f.read().format(**kwargs)
+
+
 def create_movie_tiles_content(movies):
     # The HTML content for this section of the page
     content = ''
+
+    # load_template once only to avoid unnecessary file access
     movie_tile_content = load_template('movie_tile.html')
 
     for movie in movies:
@@ -42,11 +51,10 @@ def generate_movies_page(movies, output_filename='fresh_tomatoes.html'):
 
     with open(output_filename, 'w') as output_file:
 
-        main_page_content = load_template('main.html')
-
         # Replace the movie tiles placeholder generated content
-        rendered_content = main_page_content.format(
-            movie_tiles=create_movie_tiles_content(movies))
+        movie_tiles = create_movie_tiles_content(movies)
+        rendered_content = render_template('main.html',
+                                           movie_tiles=movie_tiles)
 
         output_file.write(rendered_content)
         return os.path.abspath(output_filename)
