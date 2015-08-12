@@ -4,71 +4,21 @@ import re
 import csv
 import models
 
-# Styles and scripting for the page
-main_page_head = '''
-<head>
-    <meta charset="utf-8">
-    <title>Fresh Tomatoes!</title>
-
-    <!-- Bootstrap 3 -->
-    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap-theme.min.css">
-    <link rel="stylesheet" href="static/main.css">
-    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
-    <script src="https://netdna.bootstrapcdn.com/bootstrap/3.1.0/js/bootstrap.min.js"></script>
-    <script src="static/main.js"></script>
-</head>
-'''
+CONFIG = {'STATIC_FILE_DIR': 'static',
+          'TEMPLATE_DIR': 'templates'}
 
 
-# The main page layout and title bar
-main_page_content = '''
-<!DOCTYPE html>
-<html lang="en">
-  <body>
-    <!-- Trailer Video Modal -->
-    <div class="modal" id="trailer">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <a href="#" class="hanging-close" data-dismiss="modal" aria-hidden="true">
-            <img src="https://lh5.ggpht.com/v4-628SilF0HtHuHdu5EzxD7WRqOrrTIDi_MhEG6_qkNtUK5Wg7KPkofp_VJoF7RS2LhxwEFCO1ICHZlc-o_=s0#w=24&h=24"/>
-          </a>
-          <div class="scale-media" id="trailer-video-container">
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Page Content -->
-    <div class="container">
-      <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-        <div class="container">
-          <div class="navbar-header">
-            <a class="navbar-brand" href="#">Fresh Tomatoes Movie Trailers</a>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="container">
-      {movie_tiles}
-    </div>
-  </body>
-</html>
-'''
-
-
-# A single movie entry html template
-movie_tile_content = '''
-<div class="col-md-6 col-lg-4 movie-tile text-center" data-trailer-youtube-id="{trailer_youtube_id}" data-toggle="modal" data-target="#trailer">
-    <img src="{poster_image_url}" width="220" height="342">
-    <h2>{movie_title}</h2>
-</div>
-'''
+def load_template(template):
+    '''load a template into a string object'''
+    with open(os.path.join(CONFIG['TEMPLATE_DIR'], template)) as f:
+        return f.read()
 
 
 def create_movie_tiles_content(movies):
     # The HTML content for this section of the page
     content = ''
+    movie_tile_content = load_template('movie_tile.html')
+
     for movie in movies:
         # Extract the youtube ID from the url
         youtube_id_match = re.search(
@@ -87,27 +37,32 @@ def create_movie_tiles_content(movies):
     return content
 
 
-def open_movies_page(movies):
-    # Create or overwrite the output file
-    output_file = open('fresh_tomatoes.html', 'w')
+def generate_movies_page(movies, output_filename='fresh_tomatoes.html'):
+    '''Create or overwrite the output file and return its full path'''
 
-    # Replace the movie tiles placeholder generated content
-    rendered_content = main_page_content.format(
-        movie_tiles=create_movie_tiles_content(movies))
+    with open(output_filename, 'w') as output_file:
 
-    # Output the file
-    output_file.write(main_page_head + rendered_content)
-    output_file.close()
+        main_page_content = load_template('main.html')
 
-    # open the output file in the browser (in a new tab, if possible)
-    url = os.path.abspath(output_file.name)
-    webbrowser.open('file://' + url, new=2)
+        # Replace the movie tiles placeholder generated content
+        rendered_content = main_page_content.format(
+            movie_tiles=create_movie_tiles_content(movies))
+
+        output_file.write(rendered_content)
+        return os.path.abspath(output_filename)
+
+
+def open_movies_page(html_filename):
+    '''open an html file in the browser (in a new tab, if possible)'''
+    webbrowser.open('file://%s' % html_filename, new=2)
 
 
 def main():
-    '''Read movies from database, build static website and sent to browser'''
+    '''Read movies from database, build static website and send to browser'''
     movies = [models.Movie._make(m) for m in csv.reader(open('movies.csv', 'r'))]
-    open_movies_page(movies)
+    html_filename = generate_movies_page(movies)
+    open_movies_page(html_filename)
+
 
 if __name__ == '__main__':
 
